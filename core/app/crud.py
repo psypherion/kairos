@@ -3,7 +3,6 @@
 
 from sqlalchemy.orm import Session
 from . import models, schemas, dependencies
-from typing import Optional
 
 # --- User CRUD ---
 def get_user_by_email(db: Session, email: str):
@@ -31,3 +30,34 @@ def create_user_note(db: Session, note: schemas.NoteCreate, user_id: int):
     db.commit()
     db.refresh(db_note)
     return db_note
+
+# --- Project CRUD ---
+def get_projects(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+    """Fetches all projects for a specific user."""
+    return db.query(models.Project).filter(models.Project.owner_id == user_id).offset(skip).limit(limit).all()
+
+def create_user_project(db: Session, project: schemas.ProjectCreate, user_id: int):
+    """Creates a new project for a specific user."""
+    db_project = models.Project(**project.model_dump(), owner_id=user_id)
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+# --- Task CRUD ---
+def create_project_task(db: Session, task: schemas.TaskCreate, project_id: int):
+    """Creates a new task for a specific project."""
+    db_task = models.Task(**task.model_dump(), project_id=project_id)
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+# --- Micro Anchor CRUD ---
+def create_anchor_log(db: Session, anchor_log: schemas.MicroAnchorLogCreate, user_id: int):
+    """Creates a new Micro Anchor log entry for a user."""
+    db_log = models.MicroAnchorLog(**anchor_log.model_dump(), owner_id=user_id)
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
