@@ -2,30 +2,37 @@
 # --- Purpose: Defines the callable Python functions that the AI agents can execute. ---
 
 from sqlalchemy.orm import Session
-from .. import crud, schemas
+from .. import crud, schemas, models
+from ..crud import notes_collection, embedding_model
 
 
 def retrieve_context(query: str, db: Session, user_id: int) -> str:
     """
     This is the primary tool for the ResearchAgent.
-    It will perform a RAG query against the user's vector database.
-    (For now, we will simulate this by searching the regular database).
+    It performs a RAG query against the user's ChromaDB vector store.
     """
     print(f"--- TOOL: Retrieving context for query: '{query}' ---")
-    # In the future, this will query ChromaDB.
-    # For now, let's search all note titles and content.
-    notes = crud.get_notes(db, user_id=user_id, limit=1000)
 
-    relevant_notes = [
-        f"Title: {note.title}\nContent: {note.content}"
-        for note in notes
-        if query.lower() in note.title.lower() or (note.content and query.lower() in note.content.lower())
-    ]
+    # 1. Create an embedding for the user's query
+    query_embedding = embedding_model.encode(query).tolist()
 
-    if not relevant_notes:
+    # 2. Query the ChromaDB collection to find the most relevant notes
+    results = notes_collection.query(
+        query_embeddings=[query_embedding],
+        n_results=5,  # Return the top 5 most similar notes
+        where={"owner_id": user_id}  # Filter results to only this user's notes
+    )
+
+    # 3. Format the results into a string to be passed to the LLM
+    retrieved_documents = results.get('documents', [[]])[0]
+
+    if not retrieved_documents:
         return "No relevant information found in the knowledge base."
 
-    return "\n---\n".join(relevant_notes)
+    context_str = "\n---\n".join(retrieved_documents)
+    print(f"--- TOOL: Found context: {context_str[:200]}... ---")  # Log a snippet of the context
+
+    return context_str
 
 
 def create_note_tool(title: str, content: str, db: Session, user_id: int) -> str:
