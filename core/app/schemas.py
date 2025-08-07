@@ -3,6 +3,7 @@
 
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 
 # --- Token Schemas ---
 class Token(BaseModel):
@@ -11,6 +12,20 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+# --- Task Schemas ---
+class TaskBase(BaseModel):
+    title: str
+
+class TaskCreate(TaskBase):
+    pass
+
+class Task(TaskBase):
+    id: int
+    project_id: int
+
+    class Config:
+        from_attributes = True
 
 # --- Note Schemas ---
 class NoteBase(BaseModel):
@@ -37,6 +52,23 @@ class ProjectCreate(ProjectBase):
 class Project(ProjectBase):
     id: int
     owner_id: int
+    tasks: List[Task] = []
+
+    class Config:
+        from_attributes = True
+
+# --- Micro Anchor Schemas ---
+class MicroAnchorLogBase(BaseModel):
+    anchor_name: str
+    reflection: Optional[str] = None
+
+class MicroAnchorLogCreate(MicroAnchorLogBase):
+    pass
+
+class MicroAnchorLog(MicroAnchorLogBase):
+    id: int
+    timestamp: datetime
+    owner_id: int
 
     class Config:
         from_attributes = True
@@ -52,6 +84,7 @@ class User(UserBase):
     id: int
     notes: List[Note] = []
     projects: List[Project] = []
+    anchor_logs: List[MicroAnchorLog] = []
 
     class Config:
         from_attributes = True
