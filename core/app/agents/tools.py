@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import crud, schemas, models
 from ..crud import notes_collection, embedding_model
 import trafilatura
-from crawl4ai import WebCrawler
+from crawl4ai import AsyncWebCrawler
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 
@@ -34,11 +34,11 @@ async def _scrape_and_assimilate_url_async(url: str, db: Session, user_id: int) 
     try:
         # --- Attempt 1: Use the powerful crawl4ai for structured data ---
         print("--- Trying crawl4ai... ---")
-        crawler = WebCrawler()
-        result = crawler.run(url=url)
-        if result and result.text:
-            content = result.text
-            page_title = result.metadata.get("title", url)
+        async with AsyncWebCrawler() as crawler:
+            result = await crawler.arun(url=url)
+            if result and result.markdown:
+                content = result.markdown
+                page_title = result.metadata.get("title", url)
     except Exception as e:
         print(f"--- crawl4ai failed: {e}. Falling back to Playwright Stealth. ---")
         content = None
