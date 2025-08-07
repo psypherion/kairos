@@ -37,12 +37,46 @@ def retrieve_context(query: str, db: Session, user_id: int) -> str:
 
 def create_note_tool(title: str, content: str, db: Session, user_id: int) -> str:
     """
-    This is a tool for the TaskMasterAgent.
-    It creates a new note in the user's database.
+    Creates a new note in the user's database.
     """
     print(f"--- TOOL: Creating note with title: '{title}' ---")
     note_data = schemas.NoteCreate(title=title, content=content)
     crud.create_user_note(db=db, note=note_data, user_id=user_id)
     return f"Successfully created note titled '{title}'."
 
-# We will add more tools here later, like create_project, create_task, etc.
+
+def create_project_tool(name: str, db: Session, user_id: int) -> str:
+    """
+    Creates a new project in the user's database.
+    """
+    print(f"--- TOOL: Creating project with name: '{name}' ---")
+    project_data = schemas.ProjectCreate(name=name)
+    crud.create_user_project(db=db, project=project_data, user_id=user_id)
+    return f"Successfully created project named '{name}'."
+
+
+def create_task_tool(project_name: str, title: str, db: Session, user_id: int) -> str:
+    """
+    Creates a new task under a specific project for the user.
+    """
+    print(f"--- TOOL: Creating task '{title}' for project '{project_name}' ---")
+    # First, find the project by name for the current user
+    projects = crud.get_projects(db=db, user_id=user_id, limit=1000)
+    target_project = next((p for p in projects if p.name.lower() == project_name.lower()), None)
+
+    if not target_project:
+        return f"Error: Project '{project_name}' not found."
+
+    task_data = schemas.TaskCreate(title=title)
+    crud.create_project_task(db=db, task=task_data, project_id=target_project.id)
+    return f"Successfully created task '{title}' in project '{project_name}'."
+
+
+def log_anchor_tool(anchor_name: str, reflection: str, db: Session, user_id: int) -> str:
+    """
+    Logs a Micro Anchor practice for the user.
+    """
+    print(f"--- TOOL: Logging anchor '{anchor_name}' ---")
+    log_data = schemas.MicroAnchorLogCreate(anchor_name=anchor_name, reflection=reflection)
+    crud.create_anchor_log(db=db, anchor_log=log_data, user_id=user_id)
+    return f"Successfully logged Micro Anchor: '{anchor_name}'."
